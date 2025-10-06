@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fungsi untuk menyimpan data ke LocalStorage
     const setData = (key, data) => localStorage.setItem(key, JSON.stringify(data));
 
-    // Cek di halaman mana kita berada
     const currentPage = window.location.pathname.split('/').pop();
 
     if (currentPage === 'register.html' || currentPage === '') {
@@ -15,10 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 const username = document.getElementById('reg-username').value;
                 const password = document.getElementById('reg-password').value;
-
                 const users = getData('users');
                 const userExists = users.find(user => user.username === username);
-
                 if (userExists) {
                     alert('Username sudah terdaftar!');
                 } else {
@@ -38,10 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 const username = document.getElementById('username').value;
                 const password = document.getElementById('password').value;
-
                 const users = getData('users');
                 const user = users.find(u => u.username === username && u.password === password);
-
                 if (user) {
                     sessionStorage.setItem('loggedInUser', username);
                     window.location.href = 'lobby.html';
@@ -71,9 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const fotoInput = document.getElementById('foto');
         const previewContainer = document.getElementById('preview-container');
 
-        // PERUBAHAN: Tampilkan preview untuk banyak gambar
         fotoInput.addEventListener('change', () => {
-            previewContainer.innerHTML = ''; // Kosongkan preview lama
+            previewContainer.innerHTML = ''; 
             if (fotoInput.files.length > 0) {
                 for (const file of fotoInput.files) {
                     const reader = new FileReader();
@@ -88,7 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // PERUBAHAN: Simpan data evaluasi dengan banyak gambar
         evaluasiForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const hari = document.getElementById('hari').value;
@@ -100,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Fungsi untuk membaca satu file sebagai Base64
             const readFileAsBase64 = (file) => {
                 return new Promise((resolve, reject) => {
                     const reader = new FileReader();
@@ -110,7 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             };
 
-            // Baca semua file yang dipilih secara bersamaan
             Promise.all(Array.from(fotoFiles).map(file => readFileAsBase64(file)))
                 .then(imagesBase64 => {
                     const evaluasiData = getData('evaluasi');
@@ -119,13 +110,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         user: loggedInUser,
                         hari,
                         deskripsi,
-                        foto: imagesBase64, // Simpan sebagai array of Base64 strings
+                        foto: imagesBase64,
                         tanggal: new Date().toISOString()
                     };
-
                     evaluasiData.push(newEvaluasi);
                     setData('evaluasi', evaluasiData);
-
                     alert('Evaluasi berhasil disimpan!');
                     evaluasiForm.reset();
                     previewContainer.innerHTML = '';
@@ -169,9 +158,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const weekGroupDiv = document.createElement('div');
                 weekGroupDiv.className = 'week-group';
                 
-                const weekTitle = document.createElement('h3');
-                weekTitle.textContent = week;
-                weekGroupDiv.appendChild(weekTitle);
+                // PERUBAHAN: Membuat ID unik untuk setiap grup minggu
+                const weekGroupId = `week-group-${week.replace(/[\s,]/g, '')}`;
+                weekGroupDiv.id = weekGroupId;
+
+                // PERUBAHAN: Menambahkan header dengan tombol rekap
+                const weekHeader = document.createElement('div');
+                weekHeader.className = 'week-header';
+                weekHeader.innerHTML = `
+                    <h3>${week}</h3>
+                    <button class="btn btn-secondary btn-rekap" data-target-id="${weekGroupId}">Cetak Rekap Minggu Ini</button>
+                `;
+                weekGroupDiv.appendChild(weekHeader);
                 
                 const dayOrder = { 'Senin': 1, 'Selasa': 2, 'Rabu': 3, 'Kamis': 4, 'Jumat': 5 };
                 groupedByWeek[week].sort((a, b) => dayOrder[a.hari] - dayOrder[b.hari]);
@@ -179,8 +177,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 groupedByWeek[week].forEach(item => {
                     const itemDiv = document.createElement('div');
                     itemDiv.className = 'history-item';
-
-                    // PERUBAHAN: Buat galeri gambar dan link download
                     let imagesHTML = '<div class="history-images-container">';
                     item.foto.forEach((fotoSrc, index) => {
                         imagesHTML += `
@@ -191,15 +187,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         `;
                     });
                     imagesHTML += '</div>';
-
-                    // PERUBAHAN: Format tanggal yang lebih spesifik
                     const tanggalSpesifik = new Date(item.tanggal).toLocaleDateString('id-ID', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
+                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
                     });
-
                     itemDiv.innerHTML = `
                         <div class="history-item-content">
                             <h4>${item.hari} - ${tanggalSpesifik}</h4>
@@ -211,6 +201,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 riwayatContainer.appendChild(weekGroupDiv);
             }
+            
+            // PERUBAHAN BARU: Fungsi untuk mengaktifkan tombol rekap
+            aktifkanTombolRekap();
+        };
+
+        // PERUBAHAN BARU: Fungsi untuk menambahkan event listener ke semua tombol rekap
+        const aktifkanTombolRekap = () => {
+            document.querySelectorAll('.btn-rekap').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const targetId = e.target.getAttribute('data-target-id');
+                    const targetElement = document.getElementById(targetId);
+                    
+                    // Tambahkan kelas khusus ke body dan elemen target untuk di-print
+                    document.body.classList.add('printing');
+                    targetElement.classList.add('printable-area');
+                    
+                    window.print(); // Memicu dialog print browser
+                });
+            });
+        };
+        
+        // PERUBAHAN BARU: Hapus kelas setelah selesai print atau membatalkan
+        window.onafterprint = () => {
+            document.body.classList.remove('printing');
+            document.querySelectorAll('.printable-area').forEach(el => {
+                el.classList.remove('printable-area');
+            });
         };
 
         tampilkanRiwayat();
