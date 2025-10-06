@@ -4,10 +4,6 @@ body {
     background-color: #f4f7f9;
     margin: 0;
     color: #333;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
 }
 
 .container, .auth-container {
@@ -21,6 +17,7 @@ body {
 /* Auth Pages (Login & Register) */
 .auth-container {
     max-width: 400px;
+    margin: auto;
 }
 
 h2 {
@@ -76,10 +73,6 @@ h2 {
 }
 
 /* Lobby Page */
-body.lobby {
-    display: block;
-}
-
 header {
     background-color: #007bff;
     color: white;
@@ -127,13 +120,21 @@ main.container {
     margin-bottom: 30px;
 }
 
-.image-preview {
-    display: none; /* Sembunyikan default */
-    max-width: 200px;
+/* STYLING BARU UNTUK PREVIEW GAMBAR */
+.preview-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
     margin-top: 15px;
+}
+.preview-image {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
     border-radius: 5px;
     border: 1px solid #ddd;
 }
+
 
 #riwayat-container {
     margin-top: 20px;
@@ -153,23 +154,46 @@ main.container {
 .history-item {
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 15px;
+    padding: 20px;
     margin-bottom: 15px;
-    display: flex;
-    gap: 20px;
-    align-items: flex-start;
 }
 
-.history-item img {
-    max-width: 150px;
-    border-radius: 5px;
-}
-
+/* STYLING BARU UNTUK RIWAYAT GAMBAR & DOWNLOAD */
 .history-item-content h4 {
-    margin: 0 0 10px 0;
+    margin: 0 0 15px 0;
 }
 
 .history-item-content p {
-    margin: 0;
+    margin: 0 0 15px 0;
     color: #555;
+    white-space: pre-wrap; /* Agar spasi dan enter di deskripsi tetap terlihat */
+}
+
+.history-images-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+.history-image-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+.history-image-wrapper img {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+.download-link {
+    font-size: 14px;
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 600;
+}
+.download-link:hover {
+    text-decoration: underline;
 }
