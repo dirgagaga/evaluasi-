@@ -61,6 +61,18 @@ h2 {
     background-color: #0056b3;
 }
 
+/* PERUBAHAN: Tombol sekunder untuk rekap */
+.btn-secondary {
+    background-color: #6c757d;
+    width: auto;
+    padding: 8px 15px;
+    font-size: 14px;
+}
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+
 .auth-switch {
     text-align: center;
     margin-top: 20px;
@@ -120,7 +132,6 @@ main.container {
     margin-bottom: 30px;
 }
 
-/* STYLING BARU UNTUK PREVIEW GAMBAR */
 .preview-container {
     display: flex;
     flex-wrap: wrap;
@@ -144,10 +155,17 @@ main.container {
     margin-bottom: 25px;
 }
 
-.week-group h3 {
+/* PERUBAHAN: Header grup mingguan dengan tombol */
+.week-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     border-bottom: 2px solid #007bff;
     padding-bottom: 10px;
     margin-bottom: 15px;
+}
+.week-header h3 {
+    margin: 0;
     color: #0056b3;
 }
 
@@ -158,7 +176,6 @@ main.container {
     margin-bottom: 15px;
 }
 
-/* STYLING BARU UNTUK RIWAYAT GAMBAR & DOWNLOAD */
 .history-item-content h4 {
     margin: 0 0 15px 0;
 }
@@ -166,7 +183,7 @@ main.container {
 .history-item-content p {
     margin: 0 0 15px 0;
     color: #555;
-    white-space: pre-wrap; /* Agar spasi dan enter di deskripsi tetap terlihat */
+    white-space: pre-wrap; 
 }
 
 .history-images-container {
@@ -196,4 +213,45 @@ main.container {
 }
 .download-link:hover {
     text-decoration: underline;
+}
+
+/* PERUBAHAN BARU: CSS KHUSUS UNTUK PRINT */
+@media print {
+    /* Sembunyikan semua elemen di body secara default */
+    body > *:not(.printable-area) {
+        display: none;
+    }
+
+    /* Tampilkan hanya bagian yang ingin dicetak */
+    .printable-area {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    /* Pastikan elemen di dalamnya terlihat */
+    .printable-area * {
+        visibility: visible;
+    }
+    
+    /* Sembunyikan tombol rekap di mode cetak */
+    .btn-rekap {
+        display: none;
+    }
+    
+    /* Optimalkan tampilan gambar untuk cetak */
+    .history-image-wrapper img {
+        border: 1px solid #ccc;
+    }
+    
+    /* Sembunyikan link download saat dicetak */
+    .download-link {
+        display: none;
+    }
 }
