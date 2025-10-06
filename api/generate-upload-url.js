@@ -33,7 +33,7 @@ export default async function handler(req, res) {
         const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 60 });
         
         // Buat URL publik untuk melihat file setelah diunggah
-        const publicFileUrl = `https://f004.backblazeb2.com/file/${process.env.B2_BUCKET_NAME}/${command.input.Key}`;
+        const publicFileUrl = `https://P005.backblazeb2.com/file/${process.env.B2_BUCKET_NAME}/${command.input.Key}`;
 
         // Kirim kembali URL-URL ini ke frontend
         res.status(200).json({ uploadUrl, publicFileUrl });
