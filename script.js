@@ -52,12 +52,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- LOGIKA UNTUK HALAMAN LOBBY ---
     if (currentPage === 'lobby.html') {
+        // Cek apakah pengguna sudah login
         const loggedInUser = sessionStorage.getItem('loggedInUser');
         if (!loggedInUser) {
             window.location.href = 'index.html';
             return;
         }
 
+        // Tampilkan info profil dan siapkan tombol logout
         document.getElementById('profile-name').textContent = `Selamat datang, ${loggedInUser}`;
         document.getElementById('logout-btn').addEventListener('click', () => {
             sessionStorage.removeItem('loggedInUser');
@@ -66,11 +68,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const evaluasiForm = document.getElementById('evaluasi-form');
         const fotoInput = document.getElementById('foto');
+        const submitButton = evaluasiForm.querySelector('button[type="submit"]');
 
         // Fungsi untuk menampilkan riwayat dari Backblaze
         const tampilkanRiwayat = async () => {
             const riwayatContainer = document.getElementById('riwayat-container');
-            riwayatContainer.innerHTML = 'Memuat riwayat...'; // Tampilkan pesan loading
+            riwayatContainer.innerHTML = 'Memuat riwayat...';
             const evaluasiData = getData('evaluasi').filter(item => item.user === loggedInUser);
 
             if (evaluasiData.length === 0) {
@@ -78,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            riwayatContainer.innerHTML = ''; // Kosongkan setelah data siap
+            riwayatContainer.innerHTML = '';
 
             const getWeekNumber = (d) => {
                 d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -87,123 +90,3 @@ document.addEventListener('DOMContentLoaded', () => {
                 var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
                 return [d.getUTCFullYear(), weekNo];
             };
-
-            const groupedByWeek = evaluasiData.reduce((acc, curr) => {
-                const [year, week] = getWeekNumber(new Date(curr.tanggal));
-                const key = `Minggu ${week}, ${year}`;
-                if (!acc[key]) { acc[key] = []; }
-                acc[key].push(curr);
-                return acc;
-            }, {});
-
-            for (const week in groupedByWeek) {
-                const weekGroupDiv = document.createElement('div');
-                weekGroupDiv.className = 'week-group';
-                
-                for (const item of groupedByWeek[week]) {
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'history-item';
-                    
-                    const imageUrlPromises = item.foto.map(fileKey =>
-                        fetch(`/api/get-download-url?fileKey=${encodeURIComponent(fileKey)}`)
-                            .then(res => res.json())
-                            .then(data => data.downloadUrl)
-                            .catch(() => null)
-                    );
-                    
-                    const downloadUrls = await Promise.all(imageUrlPromises);
-                    
-                    let imagesHTML = '<div class="history-images-container">';
-                    downloadUrls.forEach((url, index) => {
-                        if (url) {
-                            imagesHTML += `
-                                <div class="history-image-wrapper">
-                                    <img src="${url}" alt="Bukti ${index + 1}" class="history-image">
-                                    <a href="${url}" target="_blank" class="download-link">Lihat/Unduh</a>
-                                </div>
-                            `;
-                        }
-                    });
-                    imagesHTML += '</div>';
-                    
-                    const tanggalSpesifik = new Date(item.tanggal).toLocaleDateString('id-ID', {
-                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-                    });
-
-                    itemDiv.innerHTML = `
-                        <div class="history-item-content">
-                            <h4>${item.hari} - ${tanggalSpesifik}</h4>
-                            <p>${item.deskripsi}</p>
-                            ${imagesHTML}
-                        </div>
-                    `;
-                    weekGroupDiv.appendChild(itemDiv);
-                }
-                riwayatContainer.appendChild(weekGroupDiv);
-            }
-        };
-
-        // Logika untuk mengirim formulir ke Backblaze
-        evaluasiForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const hari = document.getElementById('hari').value;
-            const deskripsi = document.getElementById('deskripsi').value;
-            const fotoFiles = Array.from(fotoInput.files);
-
-            if (fotoFiles.length === 0) {
-                alert('Harap unggah minimal satu foto bukti.');
-                return;
-            }
-            
-            alert('Mengunggah file ke cloud... Mohon tunggu.');
-
-            try {
-                const uploadPromises = fotoFiles.map(async (file) => {
-                    const response = await fetch(`/api/generate-upload-url?fileName=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}`);
-                    if (!response.ok) {
-                        throw new Error(`Gagal mendapatkan URL upload: ${response.statusText}`);
-                    }
-                    const { uploadUrl, fileKey } = await response.json();
-
-                    const uploadResponse = await fetch(uploadUrl, {
-                        method: 'PUT',
-                        body: file,
-                        headers: { 'Content-Type': file.type },
-                    });
-
-                    if (!uploadResponse.ok) {
-                        throw new Error(`Gagal mengunggah file: ${file.name}`);
-                    }
-                    
-                    return fileKey;
-                });
-
-                const uploadedFileKeys = await Promise.all(uploadPromises);
-
-                const evaluasiData = getData('evaluasi');
-                const newEvaluasi = {
-                    id: Date.now(),
-                    user: loggedInUser,
-                    hari,
-                    deskripsi,
-                    foto: uploadedFileKeys,
-                    tanggal: new Date().toISOString()
-                };
-                evaluasiData.push(newEvaluasi);
-                setData('evaluasi', evaluasiData);
-
-                alert('Evaluasi berhasil disimpan dan file diunggah ke cloud!');
-                evaluasiForm.reset();
-                tampilkanRiwayat();
-
-            } catch (error) {
-                console.error("Error selama proses unggah:", error);
-                alert(`Terjadi kesalahan: ${error.message}`);
-            }
-        });
-        
-        // Panggil fungsi ini saat halaman lobby pertama kali dimuat
-        tampilkanRiwayat();
-    }
-
-}); // <-- Ini adalah kurung penutup yang penting dari document.addEventListener
