@@ -1,12 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Fungsi helper untuk LocalStorage
+    // --- FUNGSI PEMBANTU ---
     const getData = (key) => JSON.parse(localStorage.getItem(key)) || [];
     const setData = (key, data) => localStorage.setItem(key, JSON.stringify(data));
 
     const currentPage = window.location.pathname.split('/').pop();
 
-    // Blok untuk halaman register.html
+    // --- LOGIKA UNTUK HALAMAN REGISTER ---
     if (currentPage === 'register.html') {
         const registerForm = document.getElementById('register-form');
         if (registerForm) {
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Blok untuk halaman index.html
+    // --- LOGIKA UNTUK HALAMAN LOGIN ---
     if (currentPage === 'index.html' || currentPage === '') {
         const loginForm = document.getElementById('login-form');
         if (loginForm) {
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Blok untuk halaman lobby.html
+    // --- LOGIKA UNTUK HALAMAN LOBBY ---
     if (currentPage === 'lobby.html') {
         const loggedInUser = sessionStorage.getItem('loggedInUser');
         if (!loggedInUser) {
@@ -67,68 +67,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const evaluasiForm = document.getElementById('evaluasi-form');
         const fotoInput = document.getElementById('foto');
 
-        // LOGIKA UNTUK UPLOAD KE BACKBLAZE
-        evaluasiForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const hari = document.getElementById('hari').value;
-            const deskripsi = document.getElementById('deskripsi').value;
-            const fotoFiles = Array.from(fotoInput.files);
-
-            if (fotoFiles.length === 0) {
-                alert('Harap unggah minimal satu foto bukti.');
-                return;
-            }
-            
-            alert('Mengunggah file ke cloud... Mohon tunggu.');
-
-            try {
-                const uploadPromises = fotoFiles.map(async (file) => {
-                    const response = await fetch(`/api/generate-upload-url?fileName=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}`);
-                    const { uploadUrl, fileKey } = await response.json();
-
-                    await fetch(uploadUrl, {
-                        method: 'PUT',
-                        body: file,
-                        headers: { 'Content-Type': file.type },
-                    });
-                    
-                    return fileKey;
-                });
-
-                const uploadedFileKeys = await Promise.all(uploadPromises);
-
-                const evaluasiData = getData('evaluasi');
-                const newEvaluasi = {
-                    id: Date.now(),
-                    user: loggedInUser,
-                    hari,
-                    deskripsi,
-                    foto: uploadedFileKeys, // Simpan array path file
-                    tanggal: new Date().toISOString()
-                };
-                evaluasiData.push(newEvaluasi);
-                setData('evaluasi', evaluasiData);
-
-                alert('Evaluasi berhasil disimpan dan file diunggah ke cloud!');
-                evaluasiForm.reset();
-                tampilkanRiwayat();
-
-            } catch (error) {
-                console.error("Error selama proses unggah:", error);
-                alert("Terjadi kesalahan saat mengunggah gambar ke cloud.");
-            }
-        });
-        
-        // FUNGSI UNTUK MENAMPILKAN RIWAYAT DARI BACKBLAZE
+        // Fungsi untuk menampilkan riwayat dari Backblaze
         const tampilkanRiwayat = async () => {
             const riwayatContainer = document.getElementById('riwayat-container');
-            riwayatContainer.innerHTML = '';
+            riwayatContainer.innerHTML = 'Memuat riwayat...'; // Tampilkan pesan loading
             const evaluasiData = getData('evaluasi').filter(item => item.user === loggedInUser);
 
             if (evaluasiData.length === 0) {
                 riwayatContainer.innerHTML = '<p>Belum ada riwayat evaluasi.</p>';
                 return;
             }
+
+            riwayatContainer.innerHTML = ''; // Kosongkan setelah data siap
 
             const getWeekNumber = (d) => {
                 d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -141,9 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const groupedByWeek = evaluasiData.reduce((acc, curr) => {
                 const [year, week] = getWeekNumber(new Date(curr.tanggal));
                 const key = `Minggu ${week}, ${year}`;
-                if (!acc[key]) {
-                    acc[key] = [];
-                }
+                if (!acc[key]) { acc[key] = []; }
                 acc[key].push(curr);
                 return acc;
             }, {});
@@ -195,4 +143,67 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        // P
+        // Logika untuk mengirim formulir ke Backblaze
+        evaluasiForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const hari = document.getElementById('hari').value;
+            const deskripsi = document.getElementById('deskripsi').value;
+            const fotoFiles = Array.from(fotoInput.files);
+
+            if (fotoFiles.length === 0) {
+                alert('Harap unggah minimal satu foto bukti.');
+                return;
+            }
+            
+            alert('Mengunggah file ke cloud... Mohon tunggu.');
+
+            try {
+                const uploadPromises = fotoFiles.map(async (file) => {
+                    const response = await fetch(`/api/generate-upload-url?fileName=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}`);
+                    if (!response.ok) {
+                        throw new Error(`Gagal mendapatkan URL upload: ${response.statusText}`);
+                    }
+                    const { uploadUrl, fileKey } = await response.json();
+
+                    const uploadResponse = await fetch(uploadUrl, {
+                        method: 'PUT',
+                        body: file,
+                        headers: { 'Content-Type': file.type },
+                    });
+
+                    if (!uploadResponse.ok) {
+                        throw new Error(`Gagal mengunggah file: ${file.name}`);
+                    }
+                    
+                    return fileKey;
+                });
+
+                const uploadedFileKeys = await Promise.all(uploadPromises);
+
+                const evaluasiData = getData('evaluasi');
+                const newEvaluasi = {
+                    id: Date.now(),
+                    user: loggedInUser,
+                    hari,
+                    deskripsi,
+                    foto: uploadedFileKeys,
+                    tanggal: new Date().toISOString()
+                };
+                evaluasiData.push(newEvaluasi);
+                setData('evaluasi', evaluasiData);
+
+                alert('Evaluasi berhasil disimpan dan file diunggah ke cloud!');
+                evaluasiForm.reset();
+                tampilkanRiwayat();
+
+            } catch (error) {
+                console.error("Error selama proses unggah:", error);
+                alert(`Terjadi kesalahan: ${error.message}`);
+            }
+        });
+        
+        // Panggil fungsi ini saat halaman lobby pertama kali dimuat
+        tampilkanRiwayat();
+    }
+
+}); // <-- Ini adalah kurung penutup yang penting dari document.addEventListener
