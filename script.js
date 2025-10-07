@@ -233,3 +233,89 @@ document.addEventListener('DOMContentLoaded', () => {
         tampilkanRiwayat();
     }
 });
+
+// Di dalam fungsi evaluasiForm.addEventListener('submit', ...)
+
+// ...
+const uploadPromises = fotoFiles.map(async (file) => {
+    // 1. Minta URL upload khusus
+    const response = await fetch(`/api/generate-upload-url?fileName=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}`);
+    const { uploadUrl, fileKey } = await response.json(); // Ambil fileKey
+
+    // 2. Unggah file
+    await fetch(uploadUrl, { /* ... (opsi fetch tetap sama) ... */ });
+
+    // 3. Kembalikan path file (fileKey)
+    return fileKey; 
+});
+
+const uploadedFileKeys = await Promise.all(uploadPromises);
+
+// 4. Simpan path file ke localStorage
+const newEvaluasi = {
+    // ...
+    foto: uploadedFileKeys, // Simpan array berisi path file
+    // ...
+};
+// ...
+
+// Ganti seluruh fungsi tampilkanRiwayat Anda dengan ini
+const tampilkanRiwayat = async () => {
+    const riwayatContainer = document.getElementById('riwayat-container');
+    riwayatContainer.innerHTML = '';
+    const loggedInUser = sessionStorage.getItem('loggedInUser');
+    const evaluasiData = getData('evaluasi').filter(item => item.user === loggedInUser);
+
+    if (evaluasiData.length === 0) {
+        riwayatContainer.innerHTML = '<p>Belum ada riwayat evaluasi.</p>';
+        return;
+    }
+
+    const getWeekNumber = (d) => { /* ... (fungsi ini tetap sama) ... */ };
+    const groupedByWeek = evaluasiData.reduce(/* ... (logika ini tetap sama) ... */, {});
+
+    for (const week in groupedByWeek) {
+        const weekGroupDiv = document.createElement('div');
+        // ... (logika grup minggu tetap sama) ...
+
+        for (const item of groupedByWeek[week]) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'history-item';
+            
+            // Minta semua URL unduhan untuk item ini
+            const imageUrlPromises = item.foto.map(fileKey =>
+                fetch(`/api/get-download-url?fileKey=${encodeURIComponent(fileKey)}`)
+                    .then(res => res.json())
+                    .then(data => data.downloadUrl)
+                    .catch(() => null) // Jika error, kembalikan null
+            );
+            
+            const downloadUrls = await Promise.all(imageUrlPromises);
+            
+            let imagesHTML = '<div class="history-images-container">';
+            downloadUrls.forEach((url, index) => {
+                if (url) {
+                    imagesHTML += `
+                        <div class="history-image-wrapper">
+                            <img src="${url}" alt="Bukti ${index + 1}" class="history-image">
+                            <a href="${url}" target="_blank" class="download-link">Lihat/Unduh</a>
+                        </div>
+                    `;
+                }
+            });
+            imagesHTML += '</div>';
+            
+            const tanggalSpesifik = new Date(item.tanggal).toLocaleDateString('id-ID', { /* ... */ });
+
+            itemDiv.innerHTML = `
+                <div class="history-item-content">
+                    <h4>${item.hari} - ${tanggalSpesifik}</h4>
+                    <p>${item.deskripsi}</p>
+                    ${imagesHTML}
+                </div>
+            `;
+            weekGroupDiv.appendChild(itemDiv);
+        }
+        riwayatContainer.appendChild(weekGroupDiv);
+    }
+};
