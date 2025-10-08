@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     }
 
     const s3Client = new S3Client({
-        endpoint: `httpshttps://${process.env.B2_ENDPOINT}`,
+        endpoint: `https://${process.env.B2_ENDPOINT}`,
         region: process.env.B2_REGION,
         credentials: {
             accessKeyId: process.env.B2_KEY_ID,
